@@ -166,8 +166,12 @@ p { margin: 0 0 1em; }
   background: var(--ink);
   box-shadow: var(--shadow-lift), inset 0 0 0 2px #3A4A36;
 }
-.phone > * { width: 100%; aspect-ratio: 274 / 564; object-fit: cover; border-radius: 34px; background: #CFE6B7; }
-.phone video { aspect-ratio: 9 / 16; }
+.phone > picture, .phone > video {
+  display: block; width: 100%; aspect-ratio: 274 / 564;
+  border-radius: 34px; overflow: hidden; background: #F3F5EE;
+}
+.phone > picture img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.phone > video { aspect-ratio: 9 / 16; object-fit: cover; background: #CFE6B7; }
 .hero .phone::before { /* speaker notch */
   content: ""; position: absolute; top: 18px; left: 50%; width: 76px; height: 20px;
   transform: translateX(-50%); background: var(--ink); border-radius: 999px; z-index: 2;
