@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset your password · Tee Town</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --green:#2E6F33; --dark:#1C281A; --gold:#FFD23F; --cream:#FBFCF8; --muted:#5A6854; --red:#C13E2B; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; font-family:Poppins,system-ui,sans-serif; color:var(--dark);
+         background: repeating-linear-gradient(115deg,#2C6C32 0 46px,#32763A 46px 92px); display:flex; align-items:center; justify-content:center; padding:24px 16px; }
+  .card { width:100%; max-width:420px; background:var(--cream); border-radius:22px; padding:28px 22px 24px; box-shadow:0 12px 36px rgba(0,0,0,.25); border:2px solid var(--gold); }
+  h1 { margin:0 0 4px; font-size:24px; }
+  p { margin:6px 0 16px; color:var(--muted); font-weight:500; line-height:1.4; }
+  label { display:block; font-weight:700; font-size:14px; margin:12px 0 6px; }
+  input { width:100%; font:inherit; font-size:16px; padding:12px 14px; border-radius:12px; border:1.5px solid #D3DBC8; background:#fff; }
+  input:focus { outline:none; border-color:var(--green); }
+  button { width:100%; margin-top:18px; font:inherit; font-weight:700; font-size:16px; padding:14px; border:0; border-radius:14px; background:var(--green); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.55; }
+  .msg { margin-top:14px; font-weight:700; font-size:14px; }
+  .err { color:var(--red); } .ok { color:var(--green); }
+  .logo { font-weight:700; font-size:13px; letter-spacing:1px; color:var(--green); margin-bottom:10px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo">⛳ TEE TOWN</div>
+  <section id="form" class="hidden">
+    <h1>Choose a new password</h1>
+    <p>Pick a password you'll remember, then sign in to Tee Town with it.</p>
+    <label for="pw">New password</label>
+    <input id="pw" type="password" autocomplete="new-password" minlength="6" required>
+    <label for="pw2">Type it again</label>
+    <input id="pw2" type="password" autocomplete="new-password" minlength="6" required>
+    <button id="save">Save new password</button>
+    <div id="msg" class="msg"></div>
+  </section>
+  <section id="done" class="hidden">
+    <h1>Password changed ✓</h1>
+    <p>All set. Go back to Tee Town and sign in with your email and your new password.</p>
+  </section>
+  <section id="bad" class="hidden">
+    <h1>This link has expired</h1>
+    <p>Reset links work once and only for a while. In Tee Town, tap <b>Forgot password?</b> again to get a new one, and open the newest email.</p>
+  </section>
+  <section id="wait"><h1>One moment…</h1><p>Checking your reset link.</p></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+  const sb = supabase.createClient('https://kdkkxfknljxvcynnqjnz.supabase.co', 'sb_publishable_DXJtp6PmAW9Yhkp-4JZ4LA_ni4EKNH2', { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  const show = id => ['form','done','bad','wait'].forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+  const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.slice(1));
+  async function start() {
+    try {
+      // 1) email template link: ?token_hash=...&type=recovery
+      const th = q.get('token_hash');
+      if (th) {
+        const { error } = await sb.auth.verifyOtp({ token_hash: th, type: 'recovery' });
+        if (error) throw error;
+        return show('form');
+      }
+      // 2) older links: #access_token=...&refresh_token=...&type=recovery
+      const at = h.get('access_token'), rt = h.get('refresh_token');
+      if (at && rt) {
+        const { error } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+        if (error) throw error;
+        return show('form');
+      }
+      show('bad');
+    } catch (e) { show('bad'); }
+  }
+  document.getElementById('save').onclick = async () => {
+    const a = document.getElementById('pw').value, b = document.getElementById('pw2').value, m = document.getElementById('msg');
+    m.className = 'msg err';
+    if (a.length < 6) { m.textContent = 'Use at least 6 characters.'; return; }
+    if (a !== b) { m.textContent = "Those don't match. Type the same password twice."; return; }
+    const btn = document.getElementById('save'); btn.disabled = true; m.textContent = '';
+    const { error } = await sb.auth.updateUser({ password: a });
+    btn.disabled = false;
+    if (error) { m.textContent = error.message || 'That didn\'t work. Try again.'; return; }
+    await sb.auth.signOut();
+    show('done');
+  };
+  start();
+</script>
+</body>
+</html>
